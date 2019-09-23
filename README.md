@@ -8,7 +8,7 @@ Installs helpers for Apache which let you easily enable and disable sites and ap
 
 To install, run this command in your terminal:
 ```console
-$ curl https://raw.foxfher/amksite/master/install.sh | sh
+$ curl https://raw.githubusercontent.com/foxfher/amksite/master/install | sh
 ```
 
 ## Usage
