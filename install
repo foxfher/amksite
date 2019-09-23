@@ -1,5 +1,11 @@
 #!/bin/sh
-
+#
+# -----------------------------------------------------------------------
+# :::: Installing helpers for Apache that allow you to easily enable ::::
+# ::::   and disable sites https://github.com/foxfher/amksite.git    ::::
+# ::::      (c) 2019 Fernando Bello Mota <fbello04@hotmail.com>      ::::
+# -----------------------------------------------------------------------
+#
 
 # VARIABLES
 LCN=$(locale | grep LC_NAME | cut -d'=' -f2 | cut -d'_' -f1)
