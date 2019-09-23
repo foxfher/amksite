@@ -1,0 +1,47 @@
+#!/bin/sh
+
+
+# VARIABLES
+LCN=$(locale | grep LC_NAME | cut -d'=' -f2 | cut -d'_' -f1)
+
+printf_new() {
+char=$1
+count=$2
+result=$( printf "%${count}s" ' ' )
+echo -e ${result// /$char}
+}
+
+declare -A MESSAGES
+SUCCESS="\033[32m[✔]::[Succes]:\033[0m"
+MESSAGES[en_WELCOME]="$( printf_new '-' 71)\n:::: Installing helpers for Apache that allow you to easily enable ::::\n::::                        and disable sites.                     ::::\n::::      (c) 2019 Fernando Bello Mota <fbello04@hotmail.com>      ::::\n$( printf_new '-' 71)"
+MESSAGES[es_WELCOME]="$( printf_new '-' 69)\n:::: Instalando aplicación para Apache que le permiten habilitar :::: \n::::               y deshabilitar fácilmente sitios.             ::::\n::::     (c) 2019 Fernando Bello Mota <fbello04@hotmail.com>     ::::\n$( printf_new '-' 69)"
+MESSAGES[en_CLONE]=":::: Cloning foxfher/amksite repository from Github ::::"
+MESSAGES[es_CLONE]=":::: Clonando el repositorio de foxfher/amksite de Github ::::"
+MESSAGES[en_MAKE]=":::: Making helpers executable ::::"
+MESSAGES[es_MAKE]=":::: Hacer que la aplicación sea ejecutable ::::"
+MESSAGES[en_COPY]=":::: Copying executables to /usr/local/bin ::::"
+MESSAGES[es_COPY]=":::: Copiar ejecutables a /usr/local/bin  ::::"
+MESSAGES[en_RM]=":::: Removing foxfher/amksite repository ::::"
+MESSAGES[es_RM]=":::: Eliminar el repositorio de foxfher/amksite ::::"
+MESSAGES[en_END]=":::: Helpers is finished installing foxfher/amksite ::::"
+MESSAGES[es_END]=":::: Se ha terminado de instalar aplicación foxfher/amksite ::::"
+
+
+
+echo -e "${MESSAGES[${LCN}_WELCOME]}"
+#CLONE THE REPOSITORY
+echo -e "$SUCCESS ${MESSAGES[${LCN}_CLONE]}"
+git clone https://github.com/foxfher/amksite.git
+
+#MAKE THE EXECUTABLES, WELL... EXECUTABLE
+echo -e "$SUCCESS ${MESSAGES[${LCN}_MAKE]}"
+sudo chmod +x amksite/bin/*
+
+#COPY THE EXECUTABLES TO THE /USR/LOCAL/BIN DIRECTORY (SHOULD BE ON USER PATH)
+echo -e "$SUCCESS ${MESSAGES[${LCN}_COPY]}"
+sudo cp amksite/bin/* /usr/local/bin/
+
+#REMOVE THE GIT REPO
+echo -e "$SUCCESS ${MESSAGES[${LCN}_RM]}"
+rm -rf amksite
+echo -e "${MESSAGES[${LCN}_END]}"

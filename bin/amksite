@@ -1,0 +1,187 @@
+#!/bin/bash
+#===============================================================================
+#
+#         FILE: amksite
+#
+#  DESCRIPTION: Apache enable/disable/List site, originally written by Fernando Bello M.
+#
+#      LICENSE: Licensed under Apache License 2.0 run debian or arch Linux
+#      OPTIONS: [-e vhost-name.conf] [-d vhost-name.conf] [-l]
+#       AUTHOR: Fernando Bello M <fbello04@hotmail.com>
+#      VERSION: 1.0
+#===============================================================================
+
+# VARIABLES
+NAME=${0##*/}
+LCN=$(locale | grep LC_NAME | cut -d'=' -f2 | cut -d'_' -f1)
+FALSE=0
+TRUE=1
+
+# COLORS #
+WHITE="\033[m"
+WHITE_BOLD="\033[1m"
+BLUE="\033[34m"
+RED="\033[31m"
+YELLOW="\033[33m"
+GREEN="\033[32m"
+CEND="\033[0m"
+# END OF COLORS #
+
+# SYSTEM MESSAGES #
+WARNING="${RED}[x]::[Warning]:${CEND}"
+SUCCESS="${GREEN}[✔]::[Succes]:${CEND}"
+INFO="${BLUE}[!]::[Info]:${CEND}"
+declare -A MESSAGES
+MESSAGES[en_ERROR_WEB_SERVER]="Check if the apache web server is installed ..."
+MESSAGES[es_ERROR_WEB_SERVER]="Compruebe si esta instalado el servidor web apache ..."
+MESSAGES[en_ERROR_ROOT]="$NAME must run as root\nUsage: sudo $NAME (-h | -l | -e | -d) [host-name]"
+MESSAGES[es_ERROR_ROOT]="$NAME debe de ejecutarse como root\nUso: sudo $NAME  (-h | -l | -e | -d) [host-name]"
+MESSAGES[en_ERROR_SITES]="inexistant\n:::: Check the folder  or file ::::"
+MESSAGES[es_ERROR_SITES]="no existe\n:::: Verifica la carpeta  o  el archivo del sitio ::::"
+MESSAGES[en_LIST_FOLDER]="Folder List"
+MESSAGES[es_LIST_FOLDER]="Listado de la Carpeta"
+MESSAGES[en_ERROR_PARAMETER]=" Verify the virtual host configuration file parameter"
+MESSAGES[es_ERROR_PARAMETER]=" Verifica el parámetro del archivo de configuración del virtual host"
+MESSAGES[en_SITES]="The site has been"
+MESSAGES[es_SITES]="El sitio ha sido"
+MESSAGES[en_ENABLED]="Enabled"
+MESSAGES[es_ENABLED]="Habilitado"
+MESSAGES[en_DISABLED]="Disabled"
+MESSAGES[es_DISABLED]="Deshabilitado"
+MESSAGES[en_SYNTAX]=":::: Checking the configuration file syntax ::::"
+MESSAGES[es_SYNTAX]=":::: Comprobando la sintaxis del archivo de configuración ::::"
+MESSAGES[en_OK_SYNTAX]="$INFO :::: The syntax check is correct ::::"
+MESSAGES[es_OK_SYNTAX]="$INFO :::: La verificación de sintaxis es correcta ::::"
+MESSAGES[en_RESTART_WEB]=":::: Restarting web server ::::"
+MESSAGES[es_RESTART_WEB]=":::: Reiniciando Servidor Web ::::"
+MESSAGES[en_ERROR_SYNTAX]="${WARNING} :::: Syntax check failed! ::::\n${INFO} :::: Please run and investigate ::::\n${INFO} :::: Command: "
+MESSAGES[es_ERROR_SYNTAX]="${WARNING} :::: ¡La verificación de sintaxis falló! :::: \n${INFO} :::: Por favor ejecuta e investiga ::::\n${INFO} :::: Comando: ";
+MESSAGES[en_DISABLED_WEB]=":::: Removing symbolic link to"
+MESSAGES[es_DISABLED_WEB]=":::: Eliminando enlace simbólico a"
+
+# END SYSTEM MESSAGES
+
+# CONFIGURATION #
+WEB_SERVER_PATH="/etc/apache2/"
+FILE_CONF="apache2"
+
+# CHECKING IF THE WEBSERVER IS APACHE2
+if [ ! -d $WEB_SERVER_PATH ]; then
+    WEB_SERVER_PATH="/etc/httpd/conf/"
+    FILE_CONF="httpd"
+    if [ ! -d $WEB_SERVER_PATH ]; then
+        echo -e "$WARNING ${MESSAGES[${LCN}_ERROR_WEB_SERVER]} "
+        exit 1
+    fi
+fi
+
+# FOLDER VHOSTS SITES #
+SITES_AVAILABLE_FOLDER="${WEB_SERVER_PATH}sites-available/" # SOURCE FOLDER FOR HARD VHOST SITES
+SITES_ENABLED_FOLDER="${WEB_SERVER_PATH}sites-enabled/"     # SOURCE FOLDER FOR SYMLINK VHOST SITES
+MESSAGES[en_USAGE]="usage: $NAME (-h | -l | -e | -d) [host-name]\n\nA program to enable and disable virtual host configurations in Apache server.\n${YELLOW}example: $NAME -e default.conf\n         $NAME -d default.conf\n         $NAME -l ${CEND}\n\nArguments:\n${YELLOW}-h${CEND} Show this help message\n${YELLOW}-l${CEND} List of enabled and disabled settings.\n${YELLOW}-e${CEND} Enable a configuration.\n${YELLOW}-d${CEND} Disable a configuration.\n${YELLOW}host-name${CEND} The hostname to operate with.\n\nThe following folders must exist:\n${SUCCESS} ${YELLOW}$SITES_AVAILABLE_FOLDER\n${SUCCESS}${YELLOW} $SITES_ENABLED_FOLDER${CEND}\ncontact me at fbello04@hotmail.com"
+MESSAGES[es_USAGE]="uso: $NAME  (-h | -l | -e | -d) [host-name]\n\nUn programa para habilitar y deshabilitar configuraciones de hosts virtuales en Servidor Apache.\n${YELLOW}ejemplo: $NAME -e default.conf\n         $NAME -d default.conf\n         $NAME -l ${CEND}\n\nArgumentos:\n${YELLOW}-h${CEND} Muestra este mensaje de ayuda.\n${YELLOW}-l${CEND} Lista de configuraciones habilitadas y deshabilitadas.\n${YELLOW}-e${CEND} Habilitar una configuración.\n${YELLOW}-d${CEND} Deshabilitar una configuración.\n${YELLOW}host-name${CEND} El nombre de host con en el que operar. \n\nDeben existir las siguientes carpetas:\n${SUCCESS}${YELLOW} $SITES_AVAILABLE_FOLDER\n${SUCCESS}${YELLOW} $SITES_ENABLED_FOLDER${CEND}\nContactame en fbello04@hotmail.com"
+
+#END OF CONFIGURATION #
+
+# VERIFY ROOT PERMITS
+function is_root() {
+    if [[ $UID != 0 ]]; then
+        echo -e "$WARNING ${MESSAGES[${LCN}_ERROR_ROOT]} "
+        exit 2
+    fi
+}
+
+# CHECK IF THE FOLFER OR FOLDER EXISTS AND PRINT SCRIPT MESSAGE AND SALE PROVIDED
+# PARAMETER $1 : FILE OR FOLDER TO CHECK
+# PARAMETER $2 : MESSAGE TO PRINT IN THE CONDITION
+# PARAMETER $3 : EXIT SCRIPT (TRUE , FALSE)
+# PARAMETER $4 : VARIABLE THAT INDICATES IN CONDITION PRINT (FALSE = WHEN NOT FULFILLING, TRUE = WHEN FULFILLING THE CONDITION)
+is_file_folder() {
+    ret=0
+    if [[ ! -e $1 ]]; then # VALID IF FILE OR FOLDER EXISTS
+        [[ TRUE -eq $4 ]] && {
+            [[ ! -z $2 ]] && { echo -e $2; } # PRINT MESSAGE
+            [[ TRUE -eq $3 ]] && { exit 3; } # CONFIRM EXIT
+        }
+    else
+        [[ FALSE -eq $4 ]] && {
+            [[ ! -z $2 ]] && { echo -e $2; } # PRINT MESSAGE
+            [[ TRUE -eq $3 ]] && { exit 3; } # CONFIRM EXIT
+        }
+    fi
+}
+
+# CHECK IF THE FOLDER EXITS OF SITES
+function preCheck() {
+    is_file_folder $SITES_ENABLED_FOLDER "$WARNING $SITES_ENABLED_FOLDER ${MESSAGES[${LCN}_ERROR_SITES]}" TRUE TRUE
+    is_file_folder $SITES_AVAILABLE_FOLDER "$WARNING $SITES_AVAILABLE_FOLDER ${MESSAGES[${LCN}_ERROR_SITES]}" TRUE TRUE
+}
+
+# VERIFY THE VIRTUAL HOST CONFIGURATION FILE PARAMETER
+# PARAMETER $1 : VARIABLE CONTAINING THE PARAMETER OF THE FUNCTION OPTION
+# PARAMETER $2 : MESSAGE TO PRINT
+function Check_parameter() {
+    if [[ -z $1 ]]; then
+        echo -e "${2}"
+        exit 1
+    fi
+}
+# RESTART SERVER WEB 
+function restart_web(){
+   echo -e "${INFO} ${MESSAGES[${LCN}_RESTART_WEB]}"
+    systemctl restart ${FILE_CONF}.service
+}
+
+# ENABLE VIRTUAL SERVER
+# PARAMETER $1 : FILE CONFIGURATION TO CHECK
+function enabled_site() {
+    COMMAND="apachectl -f ${WEB_SERVER_PATH}${FILE_CONF}.conf -t"
+    is_file_folder $SITES_AVAILABLE_FOLDER$1 "$WARNING $SITES_AVAILABLE_FOLDER$1 ${MESSAGES[${LCN}_ERROR_SITES]}" TRUE TRUE
+    is_file_folder $SITES_ENABLED_FOLDER$1 "$INFO $SITES_ENABLED__FOLDER$1, ${MESSAGES[${LCN}_SITES]} ${MESSAGES[${LCN}_ENABLED]}  " TRUE FALSE
+    if ln -s $SITES_AVAILABLE_FOLDER$1 $SITES_ENABLED_FOLDER$1; then
+        echo -e "$SUCCESS $SITES_ENABLED__FOLDER$1, ${MESSAGES[${LCN}_SITES]} ${MESSAGES[${LCN}_ENABLED]}"
+    else
+        exit 2
+    fi
+    echo -e "${MESSAGES[${LCN}_SYNTAX]}"
+    SYNTAX=$(apachectl -f ${WEB_SERVER_PATH}${FILE_CONF}.conf -t  2>&1)
+    [ `echo $SYNTAX | grep "Syntax OK" | wc -l` -eq 1 ] && { echo -e "${MESSAGES[${LCN}_OK_SYNTAX]}";} || {  echo -e "${MESSAGES[${LCN}_ERROR_SYNTAX]} $COMMAND ::::"; disable_site  "$1"; }
+    restart_web 
+}
+
+# DISABLE VIRTUAL SERVER
+function disable_site() {
+    echo -e "$INFO ${MESSAGES[${LCN}_DISABLED_WEB]} $1 ::::"
+    is_file_folder $SITES_ENABLED_FOLDER$1 "" TRUE TRUE
+    rm  $SITES_ENABLED_FOLDER$1
+}
+
+# CHECK WHAT IS NECESSARY TO START 
+is_root
+preCheck
+
+# CHECK PARAMETERS
+case $1 in
+-e)
+    Check_parameter "$2" "$WARNING ${MESSAGES[${LCN}_ERROR_PARAMETER]} \n${MESSAGES[${LCN}_USAGE]}"
+    enabled_site "$2"
+    ;;
+
+-d)
+    Check_parameter "$2" "$WARNING ${MESSAGES[${LCN}_ERROR_PARAMETER]}\n${MESSAGES[${LCN}_USAGE]}"
+    disable_site  "$2"
+    restart_web 
+    ;;
+
+-l)
+    echo -e "${GREEN}${MESSAGES[${LCN}_LIST_FOLDER]}${YELLOW}${WHITE_BOLD} => $SITES_AVAILABLE_FOLDER${WHITE}"
+    /bin/ls $SITES_AVAILABLE_FOLDER 2>/dev/null
+    echo -e "${GREEN}${MESSAGES[${LCN}_LIST_FOLDER]}${YELLOW}${WHITE_BOLD} => $SITES_ENABLED_FOLDER${WHITE}"
+    /bin/ls $SITES_ENABLED_FOLDER 2>/dev/null
+    ;;
+
+*)
+    echo -e "${MESSAGES[${LCN}_USAGE]}"
+    ;;
+esac
+#
