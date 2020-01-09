@@ -9,7 +9,7 @@
 
 # VARIABLES
 LCN=$(locale | grep LC_NAME | cut -d'=' -f2 | cut -d'_' -f1)
-
+LCN=${LCN#\"}
 printf_new() {
 char=$1
 count=$2
