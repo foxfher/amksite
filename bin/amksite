@@ -14,6 +14,7 @@
 # VARIABLES
 NAME=${0##*/}
 LCN=$(locale | grep LC_NAME | cut -d'=' -f2 | cut -d'_' -f1)
+LCN=${LCN#\"}
 FALSE=0
 TRUE=1
 
