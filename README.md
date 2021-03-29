@@ -17,6 +17,7 @@ Installs helpers for Apache which let you easily enable and disable sites and ap
 To install, run this command in your terminal:
 ```console
 $ curl https://raw.githubusercontent.com/foxfher/amksite/master/install | sh
+
 ```
 
 ### ![usage](config-amksite/usage.png)  &nbsp; Usage
@@ -35,6 +36,7 @@ Arguments:
 -e Enable a configuration.
 -d Disable a configuration.
 host-name The hostname to operate with.
+
 ```
 
 ### Limitations
