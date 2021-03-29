@@ -18,7 +18,7 @@ To install, run this command in your terminal:
 $ curl https://raw.githubusercontent.com/foxfher/amksite/master/install | sh
 ```
 
-### ![usage](config-amksite/howtouse.png)  &nbsp; Usage
+### ![usage](config-amksite/usage.png)  &nbsp; Usage
 
 ```console
 $ amksite
